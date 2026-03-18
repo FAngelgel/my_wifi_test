@@ -1,0 +1,22 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "D:/ESPIDF_5_4_3/Espressif/frameworks/esp-idf-v5.4.3/",
+  "idf.pythonInstallPath": "D:\\ESPIDF_5_4_3\\Espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.pythonBinPathWin": "D:\\ESPIDF_5_4_3\\Espressif\\python_env\\idf5.4_py3.11_env\\Scripts\\python.exe",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.portWin": "COM5",
+  "idf.toolsPathWin": "D:\\ESPIDF_5_4_3\\Espressif",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "D:\\ESPIDF_5_4_3\\Espressif\\tools\\esp-clang\\esp-18.1.2_20240912\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=d:\\VSCode\\Private_Projects\\EPS32S3\\intellgent_camera\\xiaozhi_AI\\build"
+  ],
+  "idf.flashType": "UART",
+  "idf.currentSetup": "D:/ESPIDF_5_4_3/Espressif/frameworks/esp-idf-v5.4.3/"
+}

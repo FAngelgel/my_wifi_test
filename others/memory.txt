@@ -1,0 +1,13 @@
+having wifi:
+--- PSRAM MEMORY REPORT ---
+Total PSRAM size:   8388608 bytes (8.00 MB)
+Free PSRAM:         7836268 bytes (7.47 MB)
+Largest Free Block: 7733248 bytes
+---------------------------
+
+--- INTERNAL RAM REPORT ---
+Total Heapable Internal RAM: 206179 bytes (201.35 KB)
+Free Internal RAM:          107859 bytes (105.33 KB)
+Largest Free Block:         31744 bytes
+---------------------------
+
