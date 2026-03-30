@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "10_Jan_26_intelligent_camera_01",
-    "project_version":    "bb996e9-dirty",
+    "project_version":    "ceb55db-dirty",
     "project_path":       "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test",
     "idf_path":           "D:/ESPIDF_5_4_3/Espressif/frameworks/esp-idf-v5.4.3",
     "build_dir":          "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build",
@@ -1210,7 +1210,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/main/libmain.a",
-            "sources": [ "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/main/main.cc" ],
+            "sources": [ "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/main/wifi.cc", "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/main/main.cc" ],
             "include_dirs": [ "." ]
         },
         "mbedtls": {
