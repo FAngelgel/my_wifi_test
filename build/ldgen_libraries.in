@@ -84,5 +84,6 @@ $<TARGET_FILE:__idf_spiffs>
 $<TARGET_FILE:__idf_touch_element>
 $<TARGET_FILE:__idf_usb>
 $<TARGET_FILE:__idf_wifi_provisioning>
+$<TARGET_FILE:__idf_device_drivers>
 $<TARGET_FILE:__idf_esp-wifi-connect-main>
 $<TARGET_FILE:__idf_main>

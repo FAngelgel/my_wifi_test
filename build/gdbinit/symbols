@@ -17,4 +17,4 @@ set confirm off
 set confirm on
 
 # Load application symbols
-file D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/10_Jan_26_intelligent_camera_01.elf
+file D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/my_wifi_test.elf

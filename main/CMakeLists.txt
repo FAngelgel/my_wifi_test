@@ -1,5 +1,5 @@
-idf_component_register(
-    SRCS "wifi.cc" "spi_example.cc" "fourier_analysis.cc" "main.cc"
+﻿idf_component_register(
+    SRCS "wifi.cc" "fourier_analysis.cc" "main.cc"
     INCLUDE_DIRS "."
     REQUIRES 
         nvs_flash 
@@ -7,6 +7,6 @@ idf_component_register(
         esp_netif  
         esp_http_client 
         esp-tls
-        driver
+        device_drivers
         esp-wifi-connect-main           
 )

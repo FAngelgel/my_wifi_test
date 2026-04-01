@@ -1,0 +1,10 @@
+﻿idf_component_register(
+    SRCS
+        "spi_example.cc"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        driver
+        freertos
+        log
+)

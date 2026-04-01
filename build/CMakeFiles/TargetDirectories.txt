@@ -10,7 +10,7 @@ D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMake
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/flash.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/encrypted-flash.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/_project_elf_src.dir
-D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/10_Jan_26_intelligent_camera_01.elf.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/my_wifi_test.elf.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/size.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/size-files.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/CMakeFiles/size-components.dir
@@ -836,6 +836,13 @@ D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-i
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/wifi_provisioning/CMakeFiles/install.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/wifi_provisioning/CMakeFiles/install/local.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/wifi_provisioning/CMakeFiles/install/strip.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/device_drivers/CMakeFiles/__idf_device_drivers.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/device_drivers/CMakeFiles/edit_cache.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/device_drivers/CMakeFiles/rebuild_cache.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/device_drivers/CMakeFiles/list_install_components.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/device_drivers/CMakeFiles/install.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/device_drivers/CMakeFiles/install/local.dir
+D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/device_drivers/CMakeFiles/install/strip.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/esp-wifi-connect-main/CMakeFiles/__idf_esp-wifi-connect-main.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/esp-wifi-connect-main/CMakeFiles/edit_cache.dir
 D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/esp-wifi-connect-main/CMakeFiles/rebuild_cache.dir
