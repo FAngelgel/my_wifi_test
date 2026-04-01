@@ -1,6 +1,6 @@
 /* Automatically generated file; DO NOT EDIT */
 /* Espressif IoT Development Framework Linker Script */
-/* Generated from: D:\VSCode\Working_Files\ESP32\ESP32S3\intellgent_camera\my_wifi_test\build\esp-idf\esp_system\ld\sections.ld.in */
+/* Generated from: D:\VSCode\Private_Projects\EPS32S3\my_wifi_test\build\esp-idf\esp_system\ld\sections.ld.in */
 
 /*
 

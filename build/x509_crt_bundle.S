@@ -1,4 +1,4 @@
-/* * Data converted from D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 #if !defined (__APPLE__) && !defined (__linux__)

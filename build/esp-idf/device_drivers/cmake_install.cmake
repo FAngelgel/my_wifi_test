@@ -1,4 +1,4 @@
-# Install script for directory: D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/components/device_drivers
+# Install script for directory: D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/components/device_drivers
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader/esp-idf/cmake_install.cmake")
+  include("D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader/esp-idf/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -57,6 +57,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-  file(WRITE "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

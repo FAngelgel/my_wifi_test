@@ -1,6 +1,6 @@
 ﻿idf_component_register(
     SRCS
-        "spi_example.cc"
+        "spi.cc"
     INCLUDE_DIRS
         "include"
     REQUIRES

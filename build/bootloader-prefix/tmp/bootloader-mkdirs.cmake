@@ -10,18 +10,18 @@ if(NOT EXISTS "D:/ESPIDF_5_4_3/Espressif/frameworks/esp-idf-v5.4.3/components/bo
   file(MAKE_DIRECTORY "D:/ESPIDF_5_4_3/Espressif/frameworks/esp-idf-v5.4.3/components/bootloader/subproject")
 endif()
 file(MAKE_DIRECTORY
-  "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader"
-  "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader-prefix"
-  "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader-prefix/tmp"
-  "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp"
-  "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader-prefix/src"
-  "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp"
+  "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader"
+  "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader-prefix"
+  "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader-prefix/tmp"
+  "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp"
+  "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader-prefix/src"
+  "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp"
 )
 
 set(configSubDirs )
 foreach(subDir IN LISTS configSubDirs)
-    file(MAKE_DIRECTORY "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
+    file(MAKE_DIRECTORY "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
 endforeach()
 if(cfgdir)
-  file(MAKE_DIRECTORY "D:/VSCode/Working_Files/ESP32/ESP32S3/intellgent_camera/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
+  file(MAKE_DIRECTORY "D:/VSCode/Private_Projects/EPS32S3/my_wifi_test/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
 endif()
