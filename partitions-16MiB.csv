@@ -1,7 +1,10 @@
-# Name,   Type, SubType, Offset,   Size,     Flags
-nvs,      data, nvs,     ,         0x6000,
-phy_init, data, phy,     ,         0x1000,
-factory,  app,  factory, ,         4M,
-model,    data, 0x40,    ,         8M,   
-vfs,      data, fat,     ,         1M,  
-storage,  data, spiffs,  ,         1M,
+# Name,     Type,  SubType,  Offset,   Size,     Flags
+nvs,        data,  nvs,     0x9000,   0x6000,
+otadata,    data,  ota,     0xF000,   0x2000,
+phy_init,   data,  phy,     0x11000,  0x1000,
+# Two OTA app slots (must fit your firmware .bin size)
+ota_0,      app,   ota_0,   0x20000,  3M,
+ota_1,      app,   ota_1,   0x320000, 3M,
+# Your AI/Data slots
+model,      data,  0x40,    0x620000, 8M,
+storage,    data,  spiffs,  0xE20000, 1M,
