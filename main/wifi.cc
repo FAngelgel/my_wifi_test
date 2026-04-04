@@ -92,7 +92,10 @@ bool wifi_app_start()
     WifiManagerConfig config;
     config.ssid_prefix = "Jingqi_S3_Setup";
     config.language = "en-US";
-    config.keep_ap_on_station_start = true;
+    // Keep AP off while STA starts. This avoids AP+STA scan/connect interference and
+    // guarantees the station connect flow is clean. If STA fails, our monitor will
+    // bring the config AP back automatically.
+    config.keep_ap_on_station_start = false;
     config.restart_ap_on_disconnect = true;
 
     if (!wifi.Initialize(config))
@@ -112,6 +115,9 @@ bool wifi_app_start()
     else
     {
         wifi.StartStation();
+        // Improve long HTTPS transfers (OTA) reliability/throughput.
+        // Disables modem sleep power-save while connected.
+        wifi.SetPowerSaveLevel(WifiPowerSaveLevel::PERFORMANCE);
     }
 
     // 4) Monitoring task
@@ -125,4 +131,3 @@ bool wifi_app_start()
 
     return true;
 }
-

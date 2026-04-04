@@ -484,6 +484,7 @@ void WifiConfigurationAp::StartWebServer()
     const char* captive_portal_urls[] = {
         "/hotspot-detect.html",    // Apple
         "/generate_204*",           // Android
+        "/generate204",            // Android (some variants)
         "/mobile/status.php",      // Android
         "/check_network_status.txt", // Windows
         "/ncsi.txt",              // Windows
@@ -690,8 +691,14 @@ bool WifiConfigurationAp::ConnectToWifi(const std::string &ssid, const std::stri
 
     wifi_config_t wifi_config;
     bzero(&wifi_config, sizeof(wifi_config));
-    strlcpy((char *)wifi_config.sta.ssid, ssid.c_str(), 32);
-    strlcpy((char *)wifi_config.sta.password, password.c_str(), 64);
+    // NOTE: wifi_config.sta.ssid is 32 bytes and password is 64 bytes (max IEEE 802.11 sizes).
+    // Don't use strcpy/strlcpy here: they either overflow or truncate at the maximum length.
+    if (!ssid.empty()) {
+        memcpy(wifi_config.sta.ssid, ssid.data(), ssid.size());
+    }
+    if (!password.empty()) {
+        memcpy(wifi_config.sta.password, password.data(), password.size());
+    }
     wifi_config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
     wifi_config.sta.failure_retry_cnt = 1;
     

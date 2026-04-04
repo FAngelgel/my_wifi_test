@@ -10,7 +10,7 @@ extern "C"
     // Minimal SPI master example (ESP-IDF spi_master).
     //
     // Usage:
-    //   #include "hal/spi_example.h"
+    //   #include "spi/spi.h"
     //   spi_example_init();
     //   uint8_t tx[] = {0x9F, 0x00, 0x00, 0x00};
     //   uint8_t rx[sizeof(tx)] = {};

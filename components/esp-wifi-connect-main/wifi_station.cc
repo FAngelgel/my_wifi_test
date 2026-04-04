@@ -163,9 +163,30 @@ bool WifiStation::WaitForConnected(int timeout_ms) {
 
 void WifiStation::HandleScanResult() {
     uint16_t ap_num = 0;
-    esp_wifi_scan_get_ap_num(&ap_num);
-    wifi_ap_record_t *ap_records = (wifi_ap_record_t *)malloc(ap_num * sizeof(wifi_ap_record_t));
-    esp_wifi_scan_get_ap_records(&ap_num, ap_records);
+    esp_err_t err = esp_wifi_scan_get_ap_num(&ap_num);
+    if (err != ESP_OK || ap_num == 0) {
+        ESP_LOGI(TAG, "No AP found, next scan in %d seconds", scan_current_interval_microseconds_ / 1000 / 1000);
+        esp_timer_start_once(timer_handle_, scan_current_interval_microseconds_);
+        UpdateScanInterval();
+        return;
+    }
+
+    wifi_ap_record_t *ap_records = static_cast<wifi_ap_record_t *>(malloc(ap_num * sizeof(wifi_ap_record_t)));
+    if (ap_records == nullptr) {
+        ESP_LOGE(TAG, "Failed to allocate memory for AP records (%u)", static_cast<unsigned>(ap_num));
+        esp_timer_start_once(timer_handle_, scan_current_interval_microseconds_);
+        UpdateScanInterval();
+        return;
+    }
+
+    err = esp_wifi_scan_get_ap_records(&ap_num, ap_records);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "esp_wifi_scan_get_ap_records failed: %s", esp_err_to_name(err));
+        free(ap_records);
+        esp_timer_start_once(timer_handle_, scan_current_interval_microseconds_);
+        UpdateScanInterval();
+        return;
+    }
     // sort by rssi descending
     std::sort(ap_records, ap_records + ap_num, [](const wifi_ap_record_t& a, const wifi_ap_record_t& b) {
         return a.rssi > b.rssi;
@@ -210,17 +231,34 @@ void WifiStation::HandleScanResult() {
 void WifiStation::StartConnect() {
     auto ap_record = connect_queue_.front();
     connect_queue_.erase(connect_queue_.begin());
+
+    wifi_config_t wifi_config;
+    bzero(&wifi_config, sizeof(wifi_config));
+    if (ap_record.ssid.size() > sizeof(wifi_config.sta.ssid) || ap_record.password.size() > sizeof(wifi_config.sta.password)) {
+        ESP_LOGE(TAG, "Saved credentials too long (ssid=%u, password=%u), skipping",
+                 static_cast<unsigned>(ap_record.ssid.size()),
+                 static_cast<unsigned>(ap_record.password.size()));
+        if (!connect_queue_.empty()) {
+            StartConnect();
+        } else {
+            esp_timer_start_once(timer_handle_, scan_current_interval_microseconds_);
+            UpdateScanInterval();
+        }
+        return;
+    }
+
     ssid_ = ap_record.ssid;
     password_ = ap_record.password;
 
     if (on_connect_) {
         on_connect_(ssid_);
     }
-
-    wifi_config_t wifi_config;
-    bzero(&wifi_config, sizeof(wifi_config));
-    strcpy((char *)wifi_config.sta.ssid, ap_record.ssid.c_str());
-    strcpy((char *)wifi_config.sta.password, ap_record.password.c_str());
+    if (!ap_record.ssid.empty()) {
+        memcpy(wifi_config.sta.ssid, ap_record.ssid.data(), ap_record.ssid.size());
+    }
+    if (!ap_record.password.empty()) {
+        memcpy(wifi_config.sta.password, ap_record.password.data(), ap_record.password.size());
+    }
     if (remember_bssid_) {
         wifi_config.sta.channel = ap_record.channel;
         memcpy(wifi_config.sta.bssid, ap_record.bssid, 6);

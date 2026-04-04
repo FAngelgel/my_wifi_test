@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <string>
+#include <ctime>
 
 #include <esp_crt_bundle.h>
 #include <esp_err.h>
@@ -22,8 +23,58 @@ constexpr const char *TAG = "ota_update";
 
 constexpr int kMaxVersionTextBytes = 128;
 
+bool system_time_looks_valid()
+{
+    // If time is already set to a recent epoch, TLS cert validation should work.
+    // 1700000000 ~= 2023-11-14.
+    std::time_t now = 0;
+    std::time(&now);
+    return now >= 1700000000;
+}
+
+struct HttpCollectCtx
+{
+    std::string *out = nullptr;
+    size_t max_bytes = 0;
+    bool overflow = false;
+};
+
+esp_err_t http_event_handler(esp_http_client_event_t *evt)
+{
+    auto *ctx = static_cast<HttpCollectCtx *>(evt->user_data);
+    if (ctx == nullptr || ctx->out == nullptr)
+    {
+        return ESP_OK;
+    }
+
+    if (evt->event_id == HTTP_EVENT_ON_DATA && evt->data != nullptr && evt->data_len > 0)
+    {
+        // When auto-redirect is enabled, esp_http_client may deliver body data for intermediate
+        // redirect responses (e.g., 302 HTML). For version.txt we only care about the final 200 body.
+        const int status = esp_http_client_get_status_code(evt->client);
+        if (status != 200)
+        {
+            return ESP_OK;
+        }
+
+        if (ctx->out->size() + static_cast<size_t>(evt->data_len) > ctx->max_bytes)
+        {
+            ctx->overflow = true;
+            return ESP_FAIL;
+        }
+        ctx->out->append(static_cast<const char *>(evt->data), static_cast<size_t>(evt->data_len));
+    }
+
+    return ESP_OK;
+}
+
 bool sync_time_sntp(const char *server, TickType_t wait_ticks)
 {
+    if (system_time_looks_valid())
+    {
+        return true;
+    }
+
     if (server == nullptr || server[0] == '\0')
     {
         return false;
@@ -58,8 +109,6 @@ bool sync_time_sntp(const char *server, TickType_t wait_ticks)
 
 bool http_get_text(const char *https_url, const OtaUpdateOptions &options, std::string &out_text)
 {
-    out_text.clear();
-
     if (https_url == nullptr || https_url[0] == '\0')
     {
         ESP_LOGE(TAG, "Version URL is empty");
@@ -71,68 +120,90 @@ bool http_get_text(const char *https_url, const OtaUpdateOptions &options, std::
         return false;
     }
 
-    esp_http_client_config_t http_cfg = {};
-    http_cfg.url = https_url;
-    http_cfg.timeout_ms = options.timeout_ms;
-    http_cfg.keep_alive_enable = true;
-    http_cfg.max_redirection_count = options.max_redirects;
-    http_cfg.crt_bundle_attach = esp_crt_bundle_attach;
-
-    esp_http_client_handle_t client = esp_http_client_init(&http_cfg);
-    if (!client)
+    const int attempts = (options.retries < 1) ? 1 : options.retries;
+    for (int attempt = 1; attempt <= attempts; ++attempt)
     {
-        ESP_LOGE(TAG, "esp_http_client_init failed");
-        return false;
-    }
+        out_text.clear();
 
-    esp_err_t err = esp_http_client_open(client, 0);
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "esp_http_client_open failed: %s", esp_err_to_name(err));
-        esp_http_client_cleanup(client);
-        return false;
-    }
+        esp_http_client_config_t http_cfg = {};
+        http_cfg.url = https_url;
+        http_cfg.timeout_ms = options.timeout_ms;
+        http_cfg.keep_alive_enable = true;
+        http_cfg.user_agent = options.user_agent;
+        http_cfg.buffer_size = options.rx_buffer_size;
+        http_cfg.buffer_size_tx = options.tx_buffer_size;
+        http_cfg.disable_auto_redirect = false;
+        http_cfg.max_redirection_count = options.max_redirects;
+        http_cfg.crt_bundle_attach = esp_crt_bundle_attach;
+        HttpCollectCtx collect_ctx{.out = &out_text, .max_bytes = kMaxVersionTextBytes, .overflow = false};
+        http_cfg.user_data = &collect_ctx;
+        http_cfg.event_handler = &http_event_handler;
 
-    err = esp_http_client_fetch_headers(client);
-    if (err < 0)
-    {
-        ESP_LOGE(TAG, "esp_http_client_fetch_headers failed: %s", esp_err_to_name(err));
-        esp_http_client_close(client);
-        esp_http_client_cleanup(client);
-        return false;
-    }
-    const int status = esp_http_client_get_status_code(client);
-    ESP_LOGI(TAG, "Version HTTP status: %d", status);
-
-    char buf[64];
-    int total = 0;
-    while (true)
-    {
-        const int read = esp_http_client_read(client, buf, sizeof(buf));
-        if (read < 0)
+        esp_http_client_handle_t client = esp_http_client_init(&http_cfg);
+        if (!client)
         {
-            ESP_LOGE(TAG, "esp_http_client_read failed");
-            esp_http_client_close(client);
-            esp_http_client_cleanup(client);
+            ESP_LOGE(TAG, "esp_http_client_init failed");
             return false;
         }
-        if (read == 0)
+
+        const esp_err_t err = esp_http_client_perform(client);
+        const int status = esp_http_client_get_status_code(client);
+        const int content_length = esp_http_client_get_content_length(client);
+        char final_url[512] = {};
+        if (esp_http_client_get_url(client, final_url, sizeof(final_url)) == ESP_OK && final_url[0] != '\0')
         {
+            ESP_LOGI(TAG, "Version final URL: %s", final_url);
+        }
+        ESP_LOGI(TAG, "Version HTTP Status = %d, content_length = %d", status, content_length);
+
+        if (err == ESP_OK && !collect_ctx.overflow && status == 200)
+        {
+            esp_http_client_cleanup(client);
             break;
         }
-        if (total + read > kMaxVersionTextBytes)
+
+        if (collect_ctx.overflow)
         {
             ESP_LOGE(TAG, "Version text too large (> %d bytes)", kMaxVersionTextBytes);
-            esp_http_client_close(client);
             esp_http_client_cleanup(client);
             return false;
         }
-        out_text.append(buf, buf + read);
-        total += read;
-    }
 
-    esp_http_client_close(client);
-    esp_http_client_cleanup(client);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "esp_http_client_perform failed (attempt %d/%d): %s",
+                     attempt, attempts, esp_err_to_name(err));
+        }
+        else
+        {
+            if (!out_text.empty())
+            {
+                ESP_LOGW(TAG, "Unexpected HTTP status for version (attempt %d/%d): %d | body: %.*s",
+                         attempt,
+                         attempts,
+                         status,
+                         static_cast<int>(out_text.size()),
+                         out_text.c_str());
+            }
+            else
+            {
+                ESP_LOGW(TAG, "Unexpected HTTP status for version (attempt %d/%d): %d (empty body)",
+                         attempt,
+                         attempts,
+                         status);
+            }
+
+            // Non-200 means the URL/content is wrong; don't keep retrying.
+            esp_http_client_cleanup(client);
+            return false;
+        }
+
+        esp_http_client_cleanup(client);
+        if (attempt < attempts && options.retry_delay_ms > 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(options.retry_delay_ms));
+        }
+    }
 
     // Trim whitespace
     while (!out_text.empty() && (out_text.back() == '\n' || out_text.back() == '\r' ||
@@ -240,8 +311,8 @@ bool ota_update_from_url(const char *https_url, const OtaUpdateOptions &options)
     if (options.sync_time)
     {
         // TLS needs a roughly-correct system time for certificate validation.
-        // Wait up to ~20 seconds for SNTP.
-        const bool ok = sync_time_sntp(options.ntp_server, pdMS_TO_TICKS(20000));
+        const TickType_t wait_ticks = pdMS_TO_TICKS(options.time_sync_timeout_ms);
+        const bool ok = sync_time_sntp(options.ntp_server, wait_ticks);
         ESP_LOGI(TAG, "SNTP time sync: %s", ok ? "OK" : "FAILED/SKIPPED");
     }
 
@@ -249,17 +320,37 @@ bool ota_update_from_url(const char *https_url, const OtaUpdateOptions &options)
     http_cfg.url = https_url;
     http_cfg.timeout_ms = options.timeout_ms;
     http_cfg.keep_alive_enable = true;
+    http_cfg.user_agent = options.user_agent;
+    http_cfg.buffer_size = options.rx_buffer_size;
+    http_cfg.buffer_size_tx = options.tx_buffer_size;
+    http_cfg.disable_auto_redirect = false;
     http_cfg.max_redirection_count = options.max_redirects;
     http_cfg.crt_bundle_attach = esp_crt_bundle_attach; // requires cert bundle enabled in menuconfig
 
     esp_https_ota_config_t ota_cfg = {};
     ota_cfg.http_config = &http_cfg;
+    ota_cfg.partial_http_download = options.partial_http_download;
+    ota_cfg.max_http_request_size = options.max_http_request_size;
+    ota_cfg.bulk_flash_erase = options.bulk_flash_erase;
 
-    ESP_LOGI(TAG, "Starting OTA from: %s", https_url);
-    const esp_err_t ret = esp_https_ota(&ota_cfg);
+    const int attempts = (options.retries < 1) ? 1 : options.retries;
+    esp_err_t ret = ESP_FAIL;
+    for (int attempt = 1; attempt <= attempts; ++attempt)
+    {
+        ESP_LOGI(TAG, "Starting OTA (attempt %d/%d) from: %s", attempt, attempts, https_url);
+        ret = esp_https_ota(&ota_cfg);
+        if (ret == ESP_OK)
+        {
+            break;
+        }
+        ESP_LOGE(TAG, "esp_https_ota failed (attempt %d/%d): %s", attempt, attempts, esp_err_to_name(ret));
+        if (attempt < attempts && options.retry_delay_ms > 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(options.retry_delay_ms));
+        }
+    }
     if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "esp_https_ota failed: %s", esp_err_to_name(ret));
         return false;
     }
 
@@ -280,7 +371,8 @@ bool ota_check_and_update(const char *version_url,
 {
     if (options.sync_time)
     {
-        const bool ok = sync_time_sntp(options.ntp_server, pdMS_TO_TICKS(20000));
+        const TickType_t wait_ticks = pdMS_TO_TICKS(options.time_sync_timeout_ms);
+        const bool ok = sync_time_sntp(options.ntp_server, wait_ticks);
         ESP_LOGI(TAG, "SNTP time sync: %s", ok ? "OK" : "FAILED/SKIPPED");
     }
 
