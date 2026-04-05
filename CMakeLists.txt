@@ -10,7 +10,7 @@ file(GENERATE OUTPUT "${CMAKE_CURRENT_LIST_DIR}/version.txt" CONTENT "${PROJECT_
 project(EEG_detect)
 
 # Export firmware bin to repo root for release upload
-set(EXPORT_BIN_NAME "v2.0.0_EEG_detect.bin")
+set(EXPORT_BIN_NAME "EEG_detect.bin")
 add_custom_command(
     TARGET app
     POST_BUILD

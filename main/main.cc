@@ -4,6 +4,7 @@
 #include <esp_netif.h>
 
 #include "led.h"
+#include "mqtt_app.h"
 #include "ota_update.h"
 #include "wifi.h"
 
@@ -13,7 +14,7 @@ namespace
 {
 
     constexpr const char *kFirmwareUrl =
-        "https://gitee.com/cutekawaigirl/my_wifi_test/releases/download/EEG_detect/v2.0.0_EEG_detect.bin";
+        "https://gitee.com/cutekawaigirl/my_wifi_test/releases/download/EEG_detect/EEG_detect.bin";
     constexpr const char *kVersionUrl =
         "https://gitee.com/cutekawaigirl/my_wifi_test/releases/download/EEG_detect/version.txt";
 
@@ -65,6 +66,7 @@ extern "C" void app_main(void)
     else
     {
         ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &on_got_ip, nullptr));
+        mqtt_app_start();
     }
 
     if (!wifi_app_start())
