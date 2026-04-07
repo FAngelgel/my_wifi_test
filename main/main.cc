@@ -2,6 +2,7 @@
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_netif.h>
+#include <esp_ota_ops.h>
 
 #include "led.h"
 #include "mqtt_app.h"
@@ -54,6 +55,21 @@ namespace
 
 extern "C" void app_main(void)
 {
+    // OTA rollback is enabled in sdkconfig. After a successful OTA update the new app boots in
+    // PENDING_VERIFY state and must mark itself valid, otherwise the bootloader will roll back
+    // to the previous firmware on the next reboot/power cycle.
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    esp_ota_img_states_t state = ESP_OTA_IMG_UNDEFINED;
+    if (running && esp_ota_get_state_partition(running, &state) == ESP_OK && state == ESP_OTA_IMG_PENDING_VERIFY)
+    {
+        ESP_LOGW(TAG, "App is pending verify; marking as valid to cancel rollback");
+        const esp_err_t ret = esp_ota_mark_app_valid_cancel_rollback();
+        if (ret != ESP_OK)
+        {
+            ESP_LOGE(TAG, "esp_ota_mark_app_valid_cancel_rollback failed: %s", esp_err_to_name(ret));
+        }
+    }
+
     led_init();
     led_start_version_blink();
 

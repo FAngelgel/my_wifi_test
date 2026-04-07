@@ -26,6 +26,7 @@
 #include <memory>
 #include <functional>
 #include <mutex>
+#include <atomic>
 
 #include "wifi_station.h"
 
@@ -112,6 +113,11 @@ private:
 
     void NotifyEvent(WifiEvent event, const std::string& data = "");
 
+    void ScheduleStartConfigAp();
+    void ScheduleStopConfigAp();
+    static void StartConfigApTask(void* arg);
+    static void StopConfigApTask(void* arg);
+
     WifiManagerConfig config_;
     std::unique_ptr<WifiStation> station_;
     std::unique_ptr<WifiConfigurationAp> config_ap_;
@@ -120,6 +126,9 @@ private:
     bool initialized_ = false;
     bool station_active_ = false;
     bool config_mode_active_ = false;
+
+    std::atomic<bool> start_config_ap_scheduled_{false};
+    std::atomic<bool> stop_config_ap_scheduled_{false};
 
     std::function<void(WifiEvent, const std::string&)> event_callback_;
     mutable std::string mac_address_;

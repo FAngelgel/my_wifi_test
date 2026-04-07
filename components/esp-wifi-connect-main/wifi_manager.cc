@@ -13,6 +13,9 @@
 #include <esp_mac.h>
 #include <nvs_flash.h>
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #define TAG "WifiManager"
 
 WifiManager& WifiManager::GetInstance() {
@@ -149,19 +152,63 @@ void WifiManager::StartStation() {
         // If we kept the config AP running during STA connect, stop it now.
         if (config_mode_active_ && config_.keep_ap_on_station_start) {
             ESP_LOGI(TAG, "Stopping config AP after STA connected");
-            StopConfigAp();
+            // Avoid doing heavy start/stop work inside the system event task.
+            ScheduleStopConfigAp();
         }
     });
     station_->OnDisconnected([this](int reason) {
         NotifyEvent(WifiEvent::Disconnected, std::to_string(reason));
-        if (config_.restart_ap_on_disconnect && !config_mode_active_) {
-            ESP_LOGW(TAG, "STA disconnected, starting config AP");
-            StartConfigAp();
+        if (config_.restart_ap_on_disconnect) {
+            // This callback runs from the system event loop task (`sys_evt`).
+            // Starting/stopping Wi-Fi and the HTTP config AP from here can overflow that
+            // task's stack (observed as "***ERROR*** A stack overflow in task sys_evt").
+            // Defer the transition to a dedicated task.
+            ESP_LOGW(TAG, "STA disconnected, scheduling config AP start");
+            ScheduleStartConfigAp();
         }
     });
 
     station_->Start();
     station_active_ = true;
+}
+
+void WifiManager::ScheduleStartConfigAp() {
+    // This may be called from the system event task; keep it lightweight and lock-free.
+    if (start_config_ap_scheduled_.exchange(true)) {
+        return;
+    }
+    constexpr uint32_t kStackWords = 4096; // words, not bytes
+    constexpr UBaseType_t kPrio = 5;
+    if (xTaskCreate(&WifiManager::StartConfigApTask, "wifi_cfg_ap", kStackWords, this, kPrio, nullptr) != pdPASS) {
+        start_config_ap_scheduled_.store(false);
+        ESP_LOGE(TAG, "Failed to create wifi_cfg_ap task");
+    }
+}
+
+void WifiManager::ScheduleStopConfigAp() {
+    if (stop_config_ap_scheduled_.exchange(true)) {
+        return;
+    }
+    constexpr uint32_t kStackWords = 3072; // words, not bytes
+    constexpr UBaseType_t kPrio = 5;
+    if (xTaskCreate(&WifiManager::StopConfigApTask, "wifi_cfg_ap_stop", kStackWords, this, kPrio, nullptr) != pdPASS) {
+        stop_config_ap_scheduled_.store(false);
+        ESP_LOGE(TAG, "Failed to create wifi_cfg_ap_stop task");
+    }
+}
+
+void WifiManager::StartConfigApTask(void* arg) {
+    auto* self = static_cast<WifiManager*>(arg);
+    self->StartConfigAp();
+    self->start_config_ap_scheduled_.store(false);
+    vTaskDelete(nullptr);
+}
+
+void WifiManager::StopConfigApTask(void* arg) {
+    auto* self = static_cast<WifiManager*>(arg);
+    self->StopConfigAp();
+    self->stop_config_ap_scheduled_.store(false);
+    vTaskDelete(nullptr);
 }
 
 void WifiManager::StopStation() {

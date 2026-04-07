@@ -20,7 +20,6 @@ void wifi_monitor_task(void * /*arg*/)
 {
     auto &wifi = WifiManager::GetInstance();
 
-    int disconnected_seconds = 0;
     while (true)
     {
         if (wifi.IsConnected())
@@ -28,25 +27,16 @@ void wifi_monitor_task(void * /*arg*/)
             ESP_LOGI(TAG, "Status: CONNECTED | IP: %s | RSSI: %d dBm",
                      wifi.GetIpAddress().c_str(),
                      wifi.GetRssi());
-            disconnected_seconds = 0;
         }
         else if (wifi.IsConfigMode())
         {
             ESP_LOGW(TAG, "Status: CONFIG MODE (AP) | SSID: %s | URL: %s",
                      wifi.GetApSsid().c_str(),
                      wifi.GetApWebUrl().c_str());
-            disconnected_seconds = 0;
         }
         else
         {
             ESP_LOGI(TAG, "Status: DISCONNECTED / SEARCHING...");
-            disconnected_seconds += 5;
-            if (disconnected_seconds >= 30)
-            {
-                ESP_LOGW(TAG, "Disconnected for %d seconds, starting config AP", disconnected_seconds);
-                wifi.StartConfigAp();
-                disconnected_seconds = 0;
-            }
         }
 
         ESP_LOGD(TAG, "Free Heap: %lu bytes", (unsigned long)esp_get_free_heap_size());
@@ -92,11 +82,16 @@ bool wifi_app_start()
     WifiManagerConfig config;
     config.ssid_prefix = "Jingqi_S3_Setup";
     config.language = "en-US";
+    // Faster auto-reconnect after AP/router power cycles.
+    config.station_scan_min_interval_seconds = 5;
+    config.station_scan_max_interval_seconds = 60;
     // Keep AP off while STA starts. This avoids AP+STA scan/connect interference and
-    // guarantees the station connect flow is clean. If STA fails, our monitor will
-    // bring the config AP back automatically.
+    // guarantees the station connect flow is clean. If STA can't connect, it will
+    // keep scanning/retrying in the background (no need to re-config for temporary outages).
     config.keep_ap_on_station_start = false;
-    config.restart_ap_on_disconnect = true;
+    // Don't automatically switch into config AP when Wi-Fi temporarily goes down.
+    // Keep the station running so it can reconnect when the AP comes back.
+    config.restart_ap_on_disconnect = false;
 
     if (!wifi.Initialize(config))
     {
