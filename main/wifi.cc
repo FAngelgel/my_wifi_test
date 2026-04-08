@@ -16,9 +16,18 @@ namespace {
 
 constexpr const char *TAG = "wifi_app";
 
+// If the device stays disconnected for a long time (e.g. moved to a new place, router changed),
+// automatically start the config AP so the user can enter new credentials.
+//
+// Note: We intentionally do NOT start config AP immediately on disconnect because temporary
+// outages (router reboot / hotspot sleep) should recover automatically.
+constexpr int64_t kConfigApAfterDisconnectedUs = 3LL * 60LL * 1000LL * 1000LL; // 3 minutes
+
 void wifi_monitor_task(void * /*arg*/)
 {
     auto &wifi = WifiManager::GetInstance();
+    int64_t last_seen_connected_us = esp_timer_get_time();
+    bool config_ap_forced = false;
 
     while (true)
     {
@@ -27,6 +36,8 @@ void wifi_monitor_task(void * /*arg*/)
             ESP_LOGI(TAG, "Status: CONNECTED | IP: %s | RSSI: %d dBm",
                      wifi.GetIpAddress().c_str(),
                      wifi.GetRssi());
+            last_seen_connected_us = esp_timer_get_time();
+            config_ap_forced = false;
         }
         else if (wifi.IsConfigMode())
         {
@@ -37,6 +48,16 @@ void wifi_monitor_task(void * /*arg*/)
         else
         {
             ESP_LOGI(TAG, "Status: DISCONNECTED / SEARCHING...");
+
+            // If we've been disconnected for too long, fall back to config AP to let the user
+            // update credentials (useful when the saved SSID is no longer available).
+            const int64_t now_us = esp_timer_get_time();
+            if (!config_ap_forced && (now_us - last_seen_connected_us) > kConfigApAfterDisconnectedUs)
+            {
+                ESP_LOGW(TAG, "Disconnected for too long, starting config AP");
+                wifi.StartConfigAp();
+                config_ap_forced = true;
+            }
         }
 
         ESP_LOGD(TAG, "Free Heap: %lu bytes", (unsigned long)esp_get_free_heap_size());

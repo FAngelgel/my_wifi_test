@@ -67,6 +67,10 @@ void WifiStation::Stop() {
         esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip_);
         instance_got_ip_ = nullptr;
     }
+    if (instance_lost_ip_ != nullptr) {
+        esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_LOST_IP, instance_lost_ip_);
+        instance_lost_ip_ = nullptr;
+    }
 
     // Stop timer
     if (timer_handle_ != nullptr) {
@@ -133,6 +137,11 @@ void WifiStation::Start() {
                                                         &WifiStation::IpEventHandler,
                                                         this,
                                                         &instance_got_ip_));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
+                                                        IP_EVENT_STA_LOST_IP,
+                                                        &WifiStation::IpEventHandler,
+                                                        this,
+                                                        &instance_lost_ip_));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
@@ -304,7 +313,32 @@ uint8_t WifiStation::GetChannel() {
 }
 
 bool WifiStation::IsConnected() {
-    return xEventGroupGetBits(event_group_) & WIFI_EVENT_CONNECTED;
+    const EventBits_t bits = xEventGroupGetBits(event_group_);
+    if ((bits & WIFI_EVENT_CONNECTED) == 0) {
+        return false;
+    }
+
+    // Sanity-check the real link state to avoid "stuck CONNECTED" when the AP/hotspot silently drops us.
+    // For example, Windows hotspot can keep the STA associated flag stale for a while, while traffic is dead.
+    wifi_ap_record_t ap_info = {};
+    if (esp_wifi_sta_get_ap_info(&ap_info) != ESP_OK) {
+        xEventGroupClearBits(event_group_, WIFI_EVENT_CONNECTED);
+        was_connected_ = false;
+        ip_address_.clear();
+        return false;
+    }
+
+    if (station_netif_ != nullptr) {
+        esp_netif_ip_info_t ip_info = {};
+        if (esp_netif_get_ip_info(station_netif_, &ip_info) != ESP_OK || ip_info.ip.addr == 0) {
+            xEventGroupClearBits(event_group_, WIFI_EVENT_CONNECTED);
+            was_connected_ = false;
+            ip_address_.clear();
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void WifiStation::SetScanIntervalRange(int min_interval_seconds, int max_interval_seconds) {
@@ -388,21 +422,37 @@ void WifiStation::WifiEventHandler(void* arg, esp_event_base_t event_base, int32
 
 void WifiStation::IpEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     auto* this_ = static_cast<WifiStation*>(arg);
-    auto* event = static_cast<ip_event_got_ip_t*>(event_data);
-
-    char ip_address[16];
-    esp_ip4addr_ntoa(&event->ip_info.ip, ip_address, sizeof(ip_address));
-    this_->ip_address_ = ip_address;
-    ESP_LOGI(TAG, "Got IP: %s", this_->ip_address_.c_str());
-    
-    xEventGroupSetBits(this_->event_group_, WIFI_EVENT_CONNECTED);
-    this_->was_connected_ = true;  // Mark as connected for disconnect notification
-    if (this_->on_connected_) {
-        this_->on_connected_(this_->ssid_);
+    if (event_base != IP_EVENT) {
+        return;
     }
-    this_->connect_queue_.clear();
-    this_->reconnect_count_ = 0;
-    
-    // Reset scan interval to minimum for fast reconnect if disconnected later
-    this_->scan_current_interval_microseconds_ = this_->scan_min_interval_microseconds_;
+
+    if (event_id == IP_EVENT_STA_GOT_IP) {
+        auto* event = static_cast<ip_event_got_ip_t*>(event_data);
+
+        char ip_address[16];
+        esp_ip4addr_ntoa(&event->ip_info.ip, ip_address, sizeof(ip_address));
+        this_->ip_address_ = ip_address;
+        ESP_LOGI(TAG, "Got IP: %s", this_->ip_address_.c_str());
+
+        xEventGroupSetBits(this_->event_group_, WIFI_EVENT_CONNECTED);
+        this_->was_connected_ = true;  // Mark as connected for disconnect notification
+        if (this_->on_connected_) {
+            this_->on_connected_(this_->ssid_);
+        }
+        this_->connect_queue_.clear();
+        this_->reconnect_count_ = 0;
+
+        // Reset scan interval to minimum for fast reconnect if disconnected later
+        this_->scan_current_interval_microseconds_ = this_->scan_min_interval_microseconds_;
+        return;
+    }
+
+    if (event_id == IP_EVENT_STA_LOST_IP) {
+        // DHCP/IP layer says we lost the IP. Treat this as "not connected" for app logic.
+        ESP_LOGW(TAG, "Lost IP");
+        this_->ip_address_.clear();
+        xEventGroupClearBits(this_->event_group_, WIFI_EVENT_CONNECTED);
+        this_->was_connected_ = false;
+        return;
+    }
 }

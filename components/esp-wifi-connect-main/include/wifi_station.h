@@ -62,6 +62,7 @@ private:
     esp_timer_handle_t timer_handle_ = nullptr;
     esp_event_handler_instance_t instance_any_id_ = nullptr;
     esp_event_handler_instance_t instance_got_ip_ = nullptr;
+    esp_event_handler_instance_t instance_lost_ip_ = nullptr;
     esp_netif_t* station_netif_ = nullptr;
     std::string ssid_;
     std::string password_;

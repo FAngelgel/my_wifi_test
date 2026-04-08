@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-set(PROJECT_VER "v2.0.0")
+set(PROJECT_VER "v1.0.0")
 file(GENERATE OUTPUT "${CMAKE_CURRENT_LIST_DIR}/version.txt" CONTENT "${PROJECT_VER}\n")
 project(EEG_detect)
 
