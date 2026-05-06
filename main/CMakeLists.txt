@@ -1,5 +1,5 @@
 ﻿idf_component_register(
-    SRCS "wifi.cc" "fourier_analysis.cc" "ota_update.cc" "mqtt_app.cc" "led.cc" "main.cc"
+    SRCS "HttpMultiClient.cc" "MyEventDemo.cc" "wifi.cc" "fourier_analysis.cc" "ota_update.cc" "mqtt_app.cc" "led.cc" "main.cc"
     INCLUDE_DIRS "."
     REQUIRES 
         nvs_flash 

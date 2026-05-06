@@ -8,6 +8,8 @@
 #include "mqtt_app.h"
 #include "ota_update.h"
 #include "wifi.h"
+#include "HttpMultiClient.h"
+#include "MyEventDemo.h"
 
 #define TAG "main"
 
@@ -20,6 +22,7 @@ namespace
         "https://gitee.com/cutekawaigirl/my_wifi_test/releases/download/EEG_detect/version.txt";
 
     static bool s_ota_in_progress = false;
+    static bool s_http_test_in_progress = false;
 
     void ota_check_task(void * /*arg*/)
     {
@@ -41,6 +44,22 @@ namespace
         vTaskDelete(nullptr);
     }
 
+    void http_test_task(void * /*arg*/)
+    {
+        if (s_http_test_in_progress)
+        {
+            vTaskDelete(nullptr);
+            return;
+        }
+        s_http_test_in_progress = true;
+
+        HttpMultiClient http_client;
+        http_client.start();
+
+        s_http_test_in_progress = false;
+        vTaskDelete(nullptr);
+    }
+
     void on_got_ip(void * /*arg*/, esp_event_base_t event_base, int32_t event_id, void * /*event_data*/)
     {
         if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
@@ -48,6 +67,10 @@ namespace
             static constexpr uint32_t kOtaStack = 8192;
             static constexpr UBaseType_t kOtaPrio = 5;
             xTaskCreate(&ota_check_task, "ota_check", kOtaStack, nullptr, kOtaPrio, nullptr);
+
+            static constexpr uint32_t kHttpStack = 8192;
+            static constexpr UBaseType_t kHttpPrio = 4;
+            xTaskCreate(&http_test_task, "http_test", kHttpStack, nullptr, kHttpPrio, nullptr);
         }
     }
 
@@ -89,4 +112,7 @@ extern "C" void app_main(void)
     {
         ESP_LOGE(TAG, "wifi_app_start failed");
     }
+    
+    MyEventDemo_Run();
+
 }
